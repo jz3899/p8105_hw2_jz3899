@@ -1,18 +1,19 @@
 ---
 title: "p8105_jz3899_hw2"
+author: "Jicong Zhang"
 output: html_document
 date: "2025-09-30"
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-
-```{r}
 library(tidyverse)
+library(readxl)
+
 ```
 
+
+# Problem 1
 
 Clean the data in pols-month.csv
 
@@ -25,7 +26,6 @@ pols_df =
   mutate(month=month.name[month]) %>%
   mutate(president = if_else(prez_gop == 1, "gop", "dem")) %>%
   select(-prez_dem, -prez_gop, -day)
-pols_df
 ```
 
 Clean the data in snp.csv
@@ -40,7 +40,6 @@ snp_df =
   mutate(month=month.name[month]) %>%
   select(-day) %>%
   relocate(Year, month)
-snp_df
 ```
 
 Clean the data in unempoyment.csv
@@ -50,7 +49,6 @@ ue_df =
   read.csv("~/Desktop/R/p8105_hw2_jz3899/fivethirtyeight_datasets/unemployment.csv",
   na = c("NA", ".", "")) %>%
   pivot_longer(Jan:Dec, names_to = "month")
-ue_df
 ```
 
 Join the datasets
@@ -60,7 +58,142 @@ p1_df =
   left_join(pols_df,snp_df, by=c("Year", "month"))
 final_df=
   left_join(p1_df, ue_df, by=c("Year", "month"))
-final_df
 write.csv(final_df, "~/Desktop/R/p8105_hw2_jz3899/fivethirtyeight_datasets/final.csv")
 ```
 
+**The three datasets show the different aspects of US political and economic life. The pols-month dataset contains monthly records of the party affiliation of the president along with other political indicators. The snp dataset records monthly closing values of the Standard & Poor’s stock market index, providing a measure of financial market performance over time. The unemployment dataset reports the monthly unemployment rate, an important indicator of labor market conditions. The resulting dataset aligns political leadership, stock market performance, and unemployment trends into a single panel. This combined dataset makes it possible to analyze relationships between political factors, economic performance, and market outcomes across the same time periods.**
+
+# Problem 2
+Import and clean the Mr. Trash Wheel data
+
+```{r}
+trash_df=
+  read_excel("~/Desktop/R/p8105_hw2_jz3899/202509 Trash Wheel Collection Data.xlsx",
+  skip=1, sheet="Mr. Trash Wheel") %>%
+  filter(!is.na(Dumpster)) %>%
+  rename(
+    dumpster = Dumpster,
+    month = Month,
+    year = Year,
+    date = `Date`,
+    weight_tons = `Weight (tons)`,
+    volume_cubic_yards = `Volume (cubic yards)`,
+    plastic_bottles = `Plastic Bottles`,
+    polystyrene = `Polystyrene`,
+    cigarette_butts = `Cigarette Butts`,
+    glass_bottles = `Glass Bottles`,
+    plastic_bags = `Plastic Bags` ,
+    wrappers = `Wrappers`,
+    sports_balls = `Sports Balls`,
+    homes_powered = `Homes Powered*`
+  ) %>%
+  mutate(sports_balls=as.integer(round(sports_balls)),
+         wheel_name="Mr. Trash Wheel",
+        ) %>%
+  select(-...15, -...16)
+trash_df
+```
+
+Import and clean professor trash wheel data
+
+```{r}
+professor_df=
+  read_excel("~/Desktop/R/p8105_hw2_jz3899/202509 Trash Wheel Collection Data.xlsx",
+  skip=1, sheet="Professor Trash Wheel") %>%
+  filter(!is.na(Dumpster)) %>%
+  rename(
+    dumpster = Dumpster,
+    month = Month,
+    year = Year,
+    date = `Date`,
+    weight_tons = `Weight (tons)`,
+    volume_cubic_yards = `Volume (cubic yards)`,
+    plastic_bottles = `Plastic Bottles`,
+    polystyrene = `Polystyrene`,
+    cigarette_butts = `Cigarette Butts`,
+    glass_bottles = `Glass Bottles`,
+    homes_powered = `Homes Powered*`
+  ) %>%
+  mutate(wheel_name="Professor Trash Wheel",
+         year=as.character(year))
+professor_df
+```
+
+Import and clean Gwynnda data
+
+```{r}
+gwynns_df=
+  read_excel("~/Desktop/R/p8105_hw2_jz3899/202509 Trash Wheel Collection Data.xlsx",
+  skip=1, sheet="Gwynns Falls Trash Wheel") %>%
+  filter(!is.na(Dumpster)) %>%
+  rename(
+    dumpster = Dumpster,
+    month = Month,
+    year = Year,
+    date = `Date`,
+    weight_tons = `Weight (tons)`,
+    volume_cubic_yards = `Volume (cubic yards)`,
+    plastic_bottles = `Plastic Bottles`,
+    polystyrene = `Polystyrene`,
+    cigarette_butts = `Cigarette Butts`,
+    homes_powered = `Homes Powered*`
+  ) %>%
+  mutate(wheel_name= "Gwynns Falls Trash Wheel",
+         year=as.character(year))
+gwynns_df
+```
+
+Combine the data
+
+```{r}
+all_df=
+    bind_rows(trash_df, professor_df, gwynns_df)
+write_excel_csv(all_df, "~/Desktop/R/p8105_hw2_jz3899/all.xlsx")
+```
+
+```{r}
+n_obs=nrow(all_df)
+prof_weight = all_df %>%
+  filter(wheel_name == "Professor Trash Wheel") %>%
+  summarise(total_weight = sum(weight_tons)) %>%
+  pull(total_weight)
+gwynnda_cigs = all_df %>%
+  filter(wheel_name == "Gwynns Falls Trash Wheel", year == 2022, month == "June") %>%
+  summarise(total_cigs = sum(cigarette_butts, na.rm = TRUE)) %>%
+  pull(total_cigs)
+```
+
+**The combined Trash Wheel dataset contains `r n_obs` observations from Mr. Trash Wheel, Professor Trash Wheel, and Gwynnda. Key variables include the weight of trash collected (in tons), the volume of trash (in cubic yards), and counts of common litter items. Professor Trash Wheel has collected a total of r prof_weight tons of trash. Gwynnda, the Trash Wheel located in the Gwynns Falls, collected `r gwynnda_cigs` cigarette butts in June 2022 alone.**
+
+# Problem 3
+Import and clean zip codes dataset
+
+```{r}
+codes_df =
+  read_csv("~/Desktop/R/p8105_hw2_jz3899/zillow_data/Zip Codes.csv") %>%
+  janitor::clean_names()
+codes_df
+```
+
+Import and clean zori data
+
+```{r}
+zori_df=
+  read_csv("~/Desktop/R/p8105_hw2_jz3899/zillow_data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv") %>%
+  pivot_longer(cols = matches("^20"),names_to="date") %>%
+  drop_na() %>%
+  rename(zip_code=RegionName)
+zori_df
+```
+
+```{r}
+zip_all =
+  left_join(codes_df, zori_df, by="zip_code")
+zip_all
+n_zip_obs = nrow(zip_all)
+n_zip = n_distinct(zip_all$zip_code)
+n_neighborhoods = n_distinct(zip_all$neighborhood, na.rm = TRUE)
+miss_zip = setdiff(codes_df$zip_code, zori_df$zip_code)
+```
+
+**In total, the dataset contains `r n_zip_obs` observations, spanning January 2015 through August 2024. There are `r n_zip` unique ZIP codes with rental data and `r n_neighborhoods` unique neighborhoods represented. Some zip codes do not appear in zori datasets. For example, 10464. This may be because some ZIP codes are primarily commercial or industrial areas with little to no residential housing. Or there may have institutions like airports. So there is little house for rental.**
