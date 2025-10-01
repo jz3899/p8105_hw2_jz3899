@@ -1,0 +1,66 @@
+---
+title: "p8105_jz3899_hw2"
+output: html_document
+date: "2025-09-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+```
+
+
+Clean the data in pols-month.csv
+
+```{r}
+pols_df = 
+  read.csv("~/Desktop/R/p8105_hw2_jz3899/fivethirtyeight_datasets/pols-month.csv") %>%
+  janitor::clean_names() %>%
+  separate(mon, into=c("Year","month","day"),sep="-") %>%
+  mutate(across(c(Year,month,day), as.integer)) %>%
+  mutate(month=month.name[month]) %>%
+  mutate(president = if_else(prez_gop == 1, "gop", "dem")) %>%
+  select(-prez_dem, -prez_gop, -day)
+pols_df
+```
+
+Clean the data in snp.csv
+
+```{r}
+snp_df = 
+  read.csv("~/Desktop/R/p8105_hw2_jz3899/fivethirtyeight_datasets/snp.csv",
+  na = c("NA", ".", "")) %>%
+  janitor::clean_names() %>%
+  separate(date, into=c("month","day","Year"), sep="/") %>%
+  mutate(across(c(month,day,Year), as.integer)) %>%
+  mutate(month=month.name[month]) %>%
+  select(-day) %>%
+  relocate(Year, month)
+snp_df
+```
+
+Clean the data in unempoyment.csv
+
+```{r}
+ue_df = 
+  read.csv("~/Desktop/R/p8105_hw2_jz3899/fivethirtyeight_datasets/unemployment.csv",
+  na = c("NA", ".", "")) %>%
+  pivot_longer(Jan:Dec, names_to = "month")
+ue_df
+```
+
+Join the datasets
+
+```{r}
+p1_df = 
+  left_join(pols_df,snp_df, by=c("Year", "month"))
+final_df=
+  left_join(p1_df, ue_df, by=c("Year", "month"))
+final_df
+write.csv(final_df, "~/Desktop/R/p8105_hw2_jz3899/fivethirtyeight_datasets/final.csv")
+```
+
